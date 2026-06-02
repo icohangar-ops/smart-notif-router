@@ -1,0 +1,239 @@
+{
+  "info": {
+    "name": "Smart Notification Router API",
+    "description": "Complete API collection for the AI-Powered Smart Notification Router. Covers health checks, notification CRUD, channel management, routing rules, and analytics.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:3001" },
+    { "key": "notification_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/health", "host": ["{{base_url}}"], "path": ["api", "health"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Swagger JSON",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/docs.json", "host": ["{{base_url}}"], "path": ["api", "docs.json"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Create Notification (Urgent Alert)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Server CPU Critical\",\n  \"message\": \"Production server prod-web-03 CPU at 98% for 20 minutes. Auto-scaling triggered but insufficient. Immediate investigation required.\",\n  \"source\": \"datadog\",\n  \"recipient\": {\n    \"email\": \"ops@company.com\",\n    \"phone\": \"+1234567890\"\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/notifications", "host": ["{{base_url}}"], "path": ["api", "notifications"] }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data?.notification?.id) {",
+                  "  pm.collectionVariables.set('notification_id', res.data.notification.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Notification (CI/CD Webhook)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Build #4521 Failed\",\n  \"message\": \"Frontend build failed in pipeline main. TypeScript compilation error in src/components/Dashboard.tsx line 42.\",\n  \"source\": \"github-actions\",\n  \"channel_override\": [\"webhook\"],\n  \"recipient\": {\n    \"webhook_url\": \"https://hooks.slack.com/services/demo\"\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/notifications", "host": ["{{base_url}}"], "path": ["api", "notifications"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Notification (Routine Report)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Weekly Analytics Report\",\n  \"message\": \"Your weekly notification analytics report is ready. Total notifications: 342. Delivered: 98.2%. Avg response time: 1.3s.\",\n  \"source\": \"scheduler\",\n  \"recipient\": {\n    \"email\": \"reports@company.com\"\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/notifications", "host": ["{{base_url}}"], "path": ["api", "notifications"] }
+          },
+          "response": []
+        },
+        {
+          "name": "List All Notifications",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications"],
+              "query": [{ "key": "limit", "value": "20" }, { "key": "offset", "value": "0" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Notifications (Critical Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications?priority=critical&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications"],
+              "query": [{ "key": "priority", "value": "critical" }, { "key": "limit", "value": "10" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Notifications (Failed Only)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/notifications?status=failed",
+              "host": ["{{base_url}}"],
+              "path": ["api", "notifications"],
+              "query": [{ "key": "status", "value": "failed" }]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Notification by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/notifications/{{notification_id}}", "host": ["{{base_url}}"], "path": ["api", "notifications", "{{notification_id}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Retry Failed Notification",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/notifications/{{notification_id}}/retry", "host": ["{{base_url}}"], "path": ["api", "notifications", "{{notification_id}}", "retry"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Notification",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/notifications/{{notification_id}}", "host": ["{{base_url}}"], "path": ["api", "notifications", "{{notification_id}}"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Analytics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/notifications/analytics/summary", "host": ["{{base_url}}"], "path": ["api", "notifications", "analytics", "summary"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Channels",
+      "item": [
+        {
+          "name": "List Channels",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/channels", "host": ["{{base_url}}"], "path": ["api", "channels"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Channel (Slack Webhook)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"webhook\",\n  \"name\": \"Slack #alerts\",\n  \"config\": {\n    \"url\": \"https://hooks.slack.com/services/T00/B00/xxx\"\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/channels", "host": ["{{base_url}}"], "path": ["api", "channels"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Channel (Twilio SMS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"sms\",\n  \"name\": \"Ops On-Call Phone\",\n  \"config\": {\n    \"phone\": \"+1234567890\",\n    \"provider\": \"twilio\"\n  }\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/channels", "host": ["{{base_url}}"], "path": ["api", "channels"] }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Routing Rules",
+      "item": [
+        {
+          "name": "List Rules",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": { "raw": "{{base_url}}/api/rules", "host": ["{{base_url}}"], "path": ["api", "rules"] }
+          },
+          "response": []
+        },
+        {
+          "name": "Create Rule (Security Alerts → Email+SMS)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Security Alerts → Multi-Channel\",\n  \"description\": \"Any notification containing security keywords gets routed to both email and SMS\",\n  \"conditions\": {\"keywords\": [\"security\", \"breach\", \"unauthorized\", \"intrusion\"]},\n  \"channel\": \"email\",\n  \"priority_override\": \"critical\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/api/rules", "host": ["{{base_url}}"], "path": ["api", "rules"] }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

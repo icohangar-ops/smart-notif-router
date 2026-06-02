@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  # ── Smart Notification Router API ──
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.api
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - DB_PATH=/app/data/notifications.db
+      - WOOXY_API_KEY=${WOOXY_API_KEY:-}
+      - WOOXY_FROM_EMAIL=${WOOXY_FROM_EMAIL:-noreply@smartnotif.io}
+      - WOOXY_FROM_NAME=${WOOXY_FROM_NAME:-Smart Notif Router}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - AI_ENABLED=true
+    volumes:
+      - api-data:/app/data
+    depends_on:
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # ── Redis (BullMQ queue backend) ──
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    command: redis-server --appendonly yes
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── Dashboard (Next.js) ──
+  dashboard:
+    build:
+      context: ../dashboard
+      dockerfile: ../docker/Dockerfile.dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  api-data:
+  redis-data:
