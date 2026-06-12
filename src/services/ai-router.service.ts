@@ -61,7 +61,7 @@ function parseAIResponse(raw: string): AIRouterOutput | null {
 
     const priority = priorityMap[parsed.priority] || 'normal';
     const channels = (Array.isArray(parsed.channels) ? parsed.channels : [])
-      .filter((c: string) => validChannels.includes(c)) as ChannelType[];
+      .filter((c: string) => validChannels.includes(c as ChannelType)) as ChannelType[];
 
     return {
       priority,

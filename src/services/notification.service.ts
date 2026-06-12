@@ -26,7 +26,7 @@ export interface NotificationFilters {
   offset?: number;
 }
 
-interface DeliveryAttempt {
+export interface DeliveryAttempt {
   channel: ChannelType;
   success: boolean;
   messageId?: string;
@@ -85,7 +85,7 @@ export class NotificationService {
 
     // Step 7: Log each delivery attempt
     for (const attempt of deliveryAttempts) {
-      const recipient = this.resolveRecipient(channel, input.recipient);
+      const recipient = this.resolveRecipient(attempt.channel, input.recipient);
       db.prepare(`
         INSERT INTO delivery_logs (notification_id, channel, recipient, status, message_id, response)
         VALUES (?, ?, ?, ?, ?, ?)

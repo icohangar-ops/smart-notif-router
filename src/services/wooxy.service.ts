@@ -85,7 +85,7 @@ export class WooxyService {
         body: JSON.stringify(payload),
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as { result?: { id?: string }; messageId?: string };
 
       if (!response.ok) {
         console.error(`[Wooxy] API error ${response.status}:`, data);
