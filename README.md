@@ -81,7 +81,7 @@ Smart Notification Router acts as an intelligent middleware that:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Cubiczan/smart-notif-router.git
+git clone https://github.com/icohangar-ops/smart-notif-router.git
 cd smart-notif-router
 
 # Copy environment file
