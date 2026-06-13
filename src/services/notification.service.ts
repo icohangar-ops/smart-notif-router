@@ -42,6 +42,25 @@ export class NotificationService {
     const id = uuidv4();
     const db = getDatabase();
 
+    // Insert the notification row up front so deliveries/logs key off a real id.
+    db.prepare(`
+      INSERT INTO notifications (id, title, message, source, priority, status, channels)
+      VALUES (?, ?, ?, ?, 'normal', 'pending', '[]')
+    `).run(id, input.title, input.message, input.source || 'api');
+
+    return this.routeAndDeliver(id, input);
+  }
+
+  /**
+   * Run AI routing for an existing notification row, deliver to each channel,
+   * update the row's status/priority/channels, and APPEND delivery_log rows.
+   *
+   * Shared by createNotification and retryNotification so retries reuse the
+   * same notification id and preserve the audit trail (no delete/recreate).
+   */
+  private async routeAndDeliver(id: string, input: CreateNotificationInput) {
+    const db = getDatabase();
+
     // Step 1: Run AI routing analysis
     const aiResult = await aiRouterService.analyzeNotification({
       title: input.title,
@@ -55,11 +74,11 @@ export class NotificationService {
     // Step 3: Determine priority (AI-scored)
     const priority = aiResult.priority;
 
-    // Step 4: Insert into database
+    // Step 4: Persist routing decision onto the existing row.
     db.prepare(`
-      INSERT INTO notifications (id, title, message, source, priority, status, channels)
-      VALUES (?, ?, ?, ?, ?, 'routed', ?)
-    `).run(id, input.title, input.message, input.source || 'api', priority, JSON.stringify(channels));
+      UPDATE notifications SET priority = ?, status = 'routed', channels = ?, updated_at = datetime('now')
+      WHERE id = ?
+    `).run(priority, JSON.stringify(channels), id);
 
     // Step 5: Deliver to each channel
     const deliveryAttempts: DeliveryAttempt[] = [];
@@ -275,19 +294,17 @@ export class NotificationService {
     if (!notification) throw new Error('Notification not found');
     if (notification.status !== 'failed') throw new Error('Only failed notifications can be retried');
 
-    // Reset status and re-route
+    // Re-route and re-deliver against the SAME notification id. routeAndDeliver
+    // appends new delivery_log rows rather than deleting the old ones, so the
+    // full audit trail of every attempt is preserved and retries are idempotent
+    // with respect to the notification's identity.
     db.prepare(`UPDATE notifications SET status = 'pending', updated_at = datetime('now') WHERE id = ?`).run(id);
 
-    const result = await this.createNotification({
+    return this.routeAndDeliver(id, {
       title: notification.title,
       message: notification.message,
       source: notification.source,
     });
-
-    // Delete the old notification
-    db.prepare('DELETE FROM notifications WHERE id = ?').run(id);
-
-    return result;
   }
 
   /**

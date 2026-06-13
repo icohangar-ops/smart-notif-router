@@ -7,7 +7,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "worker": "tsx src/index.ts --worker-only"
+    "worker": "tsx src/index.ts --worker-only",
+    "test": "tsx --test src/__tests__/*.test.ts"
   },
   "dependencies": {
     "better-sqlite3": "^11.7.0",
@@ -17,7 +18,7 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^11.0.5",
-    "z-ai-web-dev-sdk": "latest"
+    "z-ai-web-dev-sdk": "0.0.18"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",

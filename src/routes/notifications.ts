@@ -1,8 +1,12 @@
 import { Router, Request, Response } from 'express';
 import { notificationService } from '../services/notification.service';
 import { queueNotification } from '../workers/delivery.worker';
+import { requireAuth, rateLimit } from '../middleware/auth';
 
 const router = Router();
+
+// Rate limit for the create route: 60 requests/minute per client IP.
+const createRateLimit = rateLimit({ limit: 60, windowMs: 60_000 });
 
 /**
  * @openapi
@@ -161,7 +165,7 @@ const router = Router();
  *       400:
  *         description: Invalid input
  */
-router.post('/', async (req: Request, res: Response) => {
+router.post('/', requireAuth, createRateLimit, async (req: Request, res: Response) => {
   try {
     const { title, message } = req.body;
     if (!title || !message) {
@@ -327,7 +331,7 @@ router.get('/:id', (req: Request, res: Response) => {
  *       404:
  *         description: Notification not found
  */
-router.delete('/:id', (req: Request, res: Response) => {
+router.delete('/:id', requireAuth, (req: Request, res: Response) => {
   try {
     notificationService.deleteNotification(req.params.id);
     res.json({ success: true, data: { deleted: true } });
@@ -372,7 +376,7 @@ router.delete('/:id', (req: Request, res: Response) => {
  *       404:
  *         description: Notification not found
  */
-router.post('/:id/retry', async (req: Request, res: Response) => {
+router.post('/:id/retry', requireAuth, async (req: Request, res: Response) => {
   try {
     const result = await notificationService.retryNotification(req.params.id);
     res.json({ success: true, data: result });

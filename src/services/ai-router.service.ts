@@ -1,5 +1,10 @@
 import { config } from '../config';
 import type { Priority, ChannelType } from '../models/database';
+import { withTimeout } from '../lib/resilience';
+
+// Upper bound for a single AI completion call. On timeout the request rejects
+// and analyzeNotification falls back to heuristic routing (see catch below).
+const AI_TIMEOUT_MS = 15_000;
 
 export interface AIRouterInput {
   title: string;
@@ -135,14 +140,30 @@ Source: "${input.source}"
 
 Return a JSON object with priority (1-10), suggested channels, duplicate detection, and confidence.`;
 
-      const completion = await this.zai.chat.completions.create({
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: userMessage },
-        ],
-        max_tokens: 500,
-        temperature: 0.3,
-      });
+      // Bound the completion call with a Node AbortController + a hard
+      // withTimeout race. The AbortSignal asks the SDK to cancel in-flight
+      // work; withTimeout guarantees we are released even if the SDK ignores
+      // the signal. On timeout we reject and fall back to heuristic routing.
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+      let completion: any;
+      try {
+        completion = await withTimeout(
+          this.zai.chat.completions.create({
+            messages: [
+              { role: 'system', content: SYSTEM_PROMPT },
+              { role: 'user', content: userMessage },
+            ],
+            max_tokens: 500,
+            temperature: 0.3,
+            signal: controller.signal,
+          }),
+          AI_TIMEOUT_MS,
+          'AI completion',
+        );
+      } finally {
+        clearTimeout(timer);
+      }
 
       const content = completion.choices?.[0]?.message?.content || '';
       console.log('[AI Router] Raw AI response:', content.substring(0, 300));

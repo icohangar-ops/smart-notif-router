@@ -1,4 +1,5 @@
 import { config } from '../config';
+import { safeFetch } from '../lib/resilience';
 
 export interface WooxyRecipient {
   email: string;
@@ -76,13 +77,19 @@ export class WooxyService {
     };
 
     try {
-      const response = await fetch(`${this.baseUrl}/v3/mailer/send`, {
+      // safeFetch adds a per-attempt timeout + exponential backoff/jitter on
+      // 429/5xx and network errors, and fail-fast on other 4xx. The allowlist
+      // pins the request to the configured Wooxy host (SSRF guard, fail-closed).
+      const target = new URL(`${this.baseUrl}/v3/mailer/send`);
+      const response = await safeFetch(target, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Access-Token': this.apiKey,
         },
         body: JSON.stringify(payload),
+        timeoutMs: 10_000,
+        allowlist: [target.hostname],
       });
 
       const data = (await response.json()) as { result?: { id?: string }; messageId?: string };
