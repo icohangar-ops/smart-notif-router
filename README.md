@@ -156,11 +156,17 @@ npm run dev
 
 ## 💡 Usage Examples
 
+> Authentication: write endpoints (`POST /api/notifications`, `DELETE /api/notifications/:id`,
+> `POST /api/notifications/:id/retry`) require a bearer token. Send
+> `Authorization: Bearer <API_KEY>`, where `API_KEY` matches the value configured in the
+> environment. Read-only `GET` endpoints are unauthenticated.
+
 ### Send a Critical Server Alert
 
 ```bash
 curl -X POST http://localhost:3001/api/notifications \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
   -d '{
     "title": "Server CPU Critical",
     "message": "Production server prod-web-03 CPU at 98% for 20 minutes.",
@@ -183,6 +189,7 @@ The AI engine will:
 ```bash
 curl -X POST http://localhost:3001/api/notifications \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $API_KEY" \
   -d '{
     "title": "Build #4521 Failed",
     "message": "Frontend build failed. TypeScript error in Dashboard.tsx:42",
@@ -274,6 +281,8 @@ smart-notif-router/
 | Environment Variable | Default | Description |
 |---------------------|---------|-------------|
 | `PORT` | `3001` | API server port |
+| `API_KEY` | (empty) | Bearer token required for write endpoints; when unset, those endpoints fail closed with 503 |
+| `CORS_ORIGINS` | `http://localhost:3001` | Comma-separated allowlist of browser origins for CORS |
 | `WOOXY_API_KEY` | (empty) | Wooxy API key (required for real email) |
 | `WOOXY_FROM_EMAIL` | `noreply@smartnotif.io` | Sender email address |
 | `WOOXY_FROM_NAME` | `Smart Notif Router` | Sender display name |
